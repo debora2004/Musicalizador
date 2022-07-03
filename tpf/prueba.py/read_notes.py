@@ -11,7 +11,7 @@ def sinoidal(frec,mult,inte,duration):
     for i in range(mult):
       calc = inte * np.sin(2*np.pi*frec*mult*duration)
     return calc
-plt.plot(sinoidal(4186.01, 4,0.72727272,0.5))
+#plt.plot(sinoidal(4186.01, 4,0.72727272,0.5))
 
 with open('piano.txt', 'r') as f:
     num_harmonics = f.readline().strip()
@@ -23,17 +23,21 @@ with open('piano.txt', 'r') as f:
         mult_harm =  f.readline()
         mult_harm = mult_harm.split(' ')
         harm_list[mult_harm[0]] = mult_harm[1].strip('\n')
-        print(harm_list)
+        #print(harm_list)
     
-    for amp in range(3): # 3 = len(filename) - num_armonics - 1
+    for amp in range(3):    # 3 = len(filename) - num_armonics - 1
         line = f.readline().split(" ")
         name_funct = line[0].strip()
-        if len(line) == 2:
+        if len(line) == 4:
+            amp_mod[name_funct] = (line[1].strip(), line[2].strip(), line[3].strip())
+        elif len(line) == 3:
+            amp_mod[name_funct] = (line[1].strip(), line[2].strip())
+        elif len(line) == 2:
             amp_mod[name_funct] = line[1].strip()
         elif len(line) == 1:
             amp_mod[name_funct] = None
-    print(amp_mod)
-    print(harm_list)
+    print('moduladroes de amplitud: ', amp_mod)
+    print('lista de armonicos: ', harm_list)
 
 with open("escala_01.txt", 'r') as f:
     lines= f.readlines()
@@ -43,10 +47,10 @@ with open("escala_01.txt", 'r') as f:
         start =float(info[0])
         note= info[1]
         duration = float(info[2])
-        print(start)
-        print(note)
-        print(duration)
-        print(' ')
+        #print(start)
+        #print(note)
+        #print(duration)
+        #print(' ')
         
        
 
