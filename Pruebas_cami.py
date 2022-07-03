@@ -7,6 +7,12 @@ def sine_wave(harm: int, amplitude: float, dur: float, freq: float, start: float
   y = amplitude * np.sin(2*np.pi*freq*harm*(x-start))
   return y, x
 
+def note_freq (note):
+  for x in notes_mapping:
+    if x[0] == note:
+      freq = float(x[1])
+      return freq
+
 with open('instruments/piano.txt', 'r') as f:
   num_harmonics = f.readline().strip()
   harm_dict = {}
@@ -31,14 +37,20 @@ with open("scores/escala.txt", 'r') as f:
     info = line.split()
     start = float(info[0])
     note = info[1]
+    if 's' in note:
+      note = note [0] + note [2]
+      freq = note_freq(note)
+      freq = freq * (1.0594623)
+    else:
+      freq = note_freq (note)
     duration = float(info[2])
     func_sum = 0
-    #//////ARREGLAR FRECUENCIA QUE ES LISTA Y NO DICCIONARIO/////////
-    freq = 440 #notes_mapping [note]
     for harm in harm_dict.keys():
       sen, x = sine_wave(harm, harm_dict[harm], duration, freq, start)
       func_sum += sen
-  
+    
+
+
 plt.plot(x, func_sum)
 plt.show ()
 
