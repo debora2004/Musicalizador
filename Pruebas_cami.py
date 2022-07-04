@@ -13,19 +13,38 @@ class Synthesizer:
     self.parameters = amplitude_mod.values() # [0] son parametros de attack, [1] de sustain y [2] de decay
   
   def read_notes (self):
-    with open(self.filename_notes, 'r') as f:
-      lines= f.readlines()
-      for line in lines:
-        info = line.split()
+      with open(self.filename_notes, 'r') as f:
+        #aca llamar a funcion que encuentre el largo de la funcion y cree el array de ceros con eso
+        lines= f.readlines()
+        for line in lines:
+          info = line.split()
 
-        start = float(info[0])
-        note = info[1]
-        duration = float(info[2])
+          start = float(info[0])
+          note = info[1]
+          duration = float(info[2])
 
-        freq = self.frequency (note)
+          freq = self.frequency (note)
 
-        x, harm_sum = self.harm_sum(duration, freq, start)
-        plt.plot(x, harm_sum)
+          harm_sum = self.harm_sum(duration, freq, start)
+          # vamos a tener que hacer la modulacion de amplitud de la nota (queda final_sine)
+          # Esa senoidal final es la que se suma en el array de ceros
+          temp_array = self.array_sum(start, duration, final_sine, temp_array)
+
+          #plt.plot(x, harm_sum)
+          #plt.show()
+
+    # Necesito song_len
+    # No se como hacer que la definicion del array de ceros funcione sin que lo tengan que llamar y la asignacion al self se haga sola
+  def zero_array(self, song_len):
+    a = np.zeros(int(self.spssong_len))
+    return a
+
+    # Se tiene que haber creado el array de ceros antes de esta llamada/antes del for en el que se recorren las notas
+    # Estaba pensando en poner el zero_ar como un atributo de el sintetizador, asi el valor cambia al llamar a la funcion y no necesita retornar nada
+  def array_sum (self, start, dur, waveform, temp_array):
+    end = start + dur
+    temp_array[int(self.spsstart) : int(self.sps*end)] += waveform # Waveform es la senoidal final de la nota
+    return temp_array
 
   def sine_wave(self, harm: int, amplitude: float, dur: float, freq: float, start: float):
     x = np.linspace(start, start+dur, 1000)
