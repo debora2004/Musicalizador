@@ -1,6 +1,6 @@
 import math
 
-class Moduladores_amplitud:
+class ModulatorFunctions:
     def __init__(self, function, parameters, types):
         self.types = types
         function = function.lower()
@@ -130,7 +130,7 @@ class Moduladores_amplitud:
         f(t_prima) = min{ mod(((1-a1)/t1)*(t_prima - t0 + t1)) + a1}
         """
         
-a = Moduladores_amplitud('EXP', (0.2), )
+#a = Moduladores_amplitud('EXP', (0.2), )
 
 
 
