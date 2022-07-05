@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 from notes import notes_mapping
 filename_notes = "scores/escala.txt"
 filename_instruments = 'instruments/piano.txt'
-
+'''
 class Synthesizer:
-  def __init__(self, harm_dict, amplitude_mod: dict , filename_notes): # recibe un instrumento y una partitura
+  def __init__(self, harm_dict, amplitude_mod: dict , filename_notes, sps): # recibe un instrumento y una partitura
     self.harm_dict=harm_dict #lista de largo n, compuesta por los n armónicos del instrumento recibido
+    self.sps = sps 
     self.filename_notes = filename_notes
     self.functions = amplitude_mod.keys() # [0] es la funcion de attack, [1] la de sustain y [2] la de decay
     self.parameters = amplitude_mod.values() # [0] son parametros de attack, [1] de sustain y [2] de decay
@@ -16,22 +17,35 @@ class Synthesizer:
       with open(self.filename_notes, 'r') as f:
         #aca llamar a funcion que encuentre el largo de la funcion y cree el array de ceros con eso
         lines= f.readlines()
+        ultra_info = []
         for line in lines:
           info = line.split()
+          ultra_info.append ( (float(info[0]), info[1], float(info[2])) )
+      return ultra_info
+  
+  def get_song_length (self):
+    read = self.read_notes()
+    f_position = len(read) - 1
+    f_note = read(f_position) #Los datos de la ultima nota
+    length_time = f_note[0] + f_note [2]  #Start + duracion
+    return length_time
 
-          start = float(info[0])
-          note = info[1]
-          duration = float(info[2])
+  def signal_generator (self):
+    read = self.read_notes()
+    for a in read:
+      start = a[0]
+      note = a[1]
+      duration = a[2]
+      freq = self.frequency (note)
+      harm_sum = self.harm_sum(duration, freq, start)
+      # vamos a tener que hacer la modulacion de amplitud de la nota (queda mod_sine)
+      mod_sine = self.mod ()
+      # Esa senoidal final es la que se suma en el array de ceros
+      temp_array = self.array_sum(start, duration, mod_sine, temp_array)
+    return temp_array #(Signal)
 
-          freq = self.frequency (note)
-
-          harm_sum = self.harm_sum(duration, freq, start)
-          # vamos a tener que hacer la modulacion de amplitud de la nota (queda final_sine)
-          # Esa senoidal final es la que se suma en el array de ceros
-          temp_array = self.array_sum(start, duration, final_sine, temp_array)
-
-          #plt.plot(x, harm_sum)
-          #plt.show()
+    #plt.plot(x, harm_sum)
+    #plt.show()
 
     # Necesito song_len
     # No se como hacer que la definicion del array de ceros funcione sin que lo tengan que llamar y la asignacion al self se haga sola
@@ -46,10 +60,16 @@ class Synthesizer:
     temp_array[int(self.spsstart) : int(self.sps*end)] += waveform # Waveform es la senoidal final de la nota
     return temp_array
 
-  def sine_wave(self, harm: int, amplitude: float, dur: float, freq: float, start: float):
-    x = np.linspace(start, start+dur, 1000)
-    y = amplitude * np.sin(2*np.pi*freq*harm*(x-start))
-    return x, y
+  def sine_wave(self, harm: int, amplitude: float, dur:float, freq: float):
+    """Creates the sine wave of a note
+    harm: the number that multiplies the frequency of the base note, to get the frequency of the overtone
+    amplitude: the intensity of the overtone. Must be between 0 and 1
+    freq: the frequency of the base note
+
+    returns y: the sine_wave of the note
+    """
+    y = amplitude * np.sin(2* np.pi * freq * harm * np.arange(self.sps*dur)/self.sps)
+    return y
 
   def note_freq (self, note):
     for x in notes_mapping:
@@ -67,28 +87,44 @@ class Synthesizer:
     return freq
 
   def harm_sum (self, duration, freq, start):
-    '''Suma de los armonicos a cada nota'''
+    #Suma de los armonicos a cada nota
     harm_sum = 0
     for harm in harm_dict.keys():
-      x, sen = self.sine_wave(harm, harm_dict[harm], duration, freq, start)
+      sen = self.sine_wave(harm, harm_dict[harm], duration, freq, start)
       harm_sum += sen
-    return x, harm_sum
+    return harm_sum
 
- #///PARTE DE MODULACION POR FLOR///
+class Modular():
+  def __init__ (self, time, start, t_a, t_d, duration):
+    self.t = time
+    self.t0 = start
+    self.ta = t_a
+    self.td = t_d
+    self.d = duration
+  
 
-  def modulacion(self, t, t0, ta, td,d): # fa,fs,fd son las funciones de mod_amp
-                                          # ta tiempo de ataque, td tiempo de decaimiento, 
-                                          # t0 es el instante en el que inicia, d es la duracion
-    if t0 < t and t < (t0+ta):
-      result = self.amp_mod('attack', (t-t0))
-    elif (t0+ta) < t and t < (t0+d):
-      result = self.amp_mod('sustain', (t-(t0+ta)))
-    elif (t0+d) < t and t < (t0+d+td):
-      result = self.amp_mod('sustain', (t0+d))*self.amp_mod("decay", (t-(t0+d)))
-    else:
-      result = 0
-    return result
-      
+  def mod(self): # fa,fs,fd son las funciones de mod_amp
+                                            # ta tiempo de ataque, td tiempo de decaimiento, 
+                                            # t0 es el instante en el que inicia, d es la duracion
+      t = self.t 
+      t0 = self.t0 
+      ta = self.ta 
+      td = self.td
+      d = self.d
+      f_attack = np.where( (t>t0) & (t<(t0+ta)) )
+      f_sustain = np.where( (t>(t0+ta)) & (t<(t0+d)) )
+      f_combo = np.where( (t>(t0+d)) & (t<(t0+d+td)) )
+
+      # if t0 < t and t < (t0+ta):
+      #   result = self.amp_mod('attack', (t-t0))
+      # elif (t0+ta) < t and t < (t0+d):
+      #   result = self.amp_mod('sustain', (t-(t0+ta)))
+      # elif (t0+d) < t and t < (t0+d+td):
+      #   result = self.amp_mod('sustain', (t0+d))*self.amp_mod("decay", (t-(t0+d)))
+      # else:
+      #   result = 0
+      # return result
+        
   def amp_mod(self, types:str, t):
     if types=="attack":
       i=0
@@ -100,25 +136,38 @@ class Synthesizer:
     result=modulatorfunctions.ModulatorFunctions(function, parameter, types)
     return result
 
-  def amplitud(self, t, A):
-    result = A*self.sinoidal*self.modulacion
-    return result
+t = np.arange(sps*1.5)
+t0 = 0
+ta = 0.05
+td = 0.02
+d = 20
+a = Modular(t, t0, ta, td, d)
+a.mod()
+'''
 
-#///ABRIMOS EL INSTRUMENTO///
-with open(filename_instruments, 'r') as f:
-  num_harmonics = f.readline().strip()
-  harm_dict = {}
-  amp_mod={} #modulador de amplitud
+filename_notes = 'scores/escala.txt'
 
-  for n in range(int(num_harmonics)):
-    mult_harm =  f.readline()
-    mult_harm = mult_harm.split(' ')
-    harm_dict[float(mult_harm[0])] = float(mult_harm[1].strip('\n'))
+def read_notes():
+  with open(filename_notes, 'r') as f:
+    #aca llamar a funcion que encuentre el largo de la funcion y cree el array de ceros con eso
+    lines= f.readlines()
+    ultra_info = []
+    for line in lines:
+      info = line.split()
+      ultra_info.append ( (float(info[0]), info[1], float(info[2])) )
+  return ultra_info
 
-  for amp in range(3): # 3 = len(filename) - num_armonics - 1
-    line = f.readline().split(" ")
-    name_funct = line[0].strip()
-    if len(line) > 1:
-        amp_mod[name_funct] = line[1].strip()
-    elif len(line) == 1:
-        amp_mod[name_funct] = None
+def array_sum (a, temp_array):
+  temp_array += a
+  return temp_array
+    
+gg = 0
+read = read_notes()
+array_list = []
+for a in read:
+  b = a[2]
+  temp_array = array_sum (b, gg)
+  array_list.append(temp_array)
+final_array = sum(array_list)
+print (final_array)
+
