@@ -1,4 +1,4 @@
-import math
+import numpy as np
 
 class ModulatorFunctions:
     def __init__(self, function, parameters, types):
