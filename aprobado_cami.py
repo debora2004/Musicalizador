@@ -4,18 +4,15 @@ from instrumento import Instrument
 import modulatorfunctions
 import matplotlib.pyplot as plt
 from notes import notes_mapping
-filename_notes = "scores/escala.txt"
-filename_instruments = 'instruments/piano.txt'
 
-inst = Instrument(filename_instruments)
-harm_dict, amp_dict = inst.read_instrument()
 
 class Synthesizer:
   def __init__(self, harm_dict: dict, amplitude_mod: dict , filename_notes: str, sps: float): # recibe un instrumento y una partitura
     self.harm_dict=harm_dict #lista de largo n, compuesta por los n armónicos del instrumento recibido
-    self.sps = sps 
+    self.sps = int(sps)
+    if '.txt' not in filename_notes:
+      filename_notes = 'scores/' +filename_notes + '.txt'
     self.filename_notes = filename_notes
-
     self.functions = amplitude_mod.keys() # [0] es la funcion de attack, [1] la de sustain y [2] la de decay
     self.parameters = list(amplitude_mod.values()) # [0] son parametros de attack, [1] de sustain y [2] de decay
   
@@ -23,6 +20,8 @@ class Synthesizer:
       with open(self.filename_notes, 'r') as f:
         #aca llamar a funcion que encuentre el largo de la funcion y cree el array de ceros con eso
         lines= f.readlines()
+        if '\n' in lines:
+          lines.remove('\n')
         ultra_info = []
         for line in lines:
           info = line.split()
@@ -56,7 +55,11 @@ class Synthesizer:
       temp_array = self.array_sum(start, duration, harm_sum, zero_array) #En vez de harm_sum deberia ser mod_sine
       array_list.append(temp_array)
     final_array = sum(array_list)
-    return final_array #(Signal)
+    wave = final_array * 1 / np.max( np.abs(final_array) )
+    waveform_ints = np.int16(wave * (32767 / np.max(np.abs(wave))))
+    plt.plot(t, wave)
+    plt.show()
+    return waveform_ints #(Signal)
 
     # Necesito song_len
     # No se como hacer que la definicion del array de ceros funcione sin que lo tengan que llamar y la asignacion al self se haga sola
@@ -147,7 +150,7 @@ class Synthesizer:
     final_sine: the function made from the sum of all of the notes in the song, with the respective amplitude modifiers.
     name: the name"""
     signal = self.signal_generator()
-    signal = self.normalize (signal)
+    #signal = self.normalize (signal)
     waveform_ints = np.int16(signal * 32767)
     if ".wav" not in name:
       name += ".wav"
@@ -156,8 +159,3 @@ class Synthesizer:
   def normalize (self, signal):
     signal += 32767 / np.max(np.abs(signal))
     return signal
-
-
-sps = 44100
-Syn = Synthesizer (harm_dict, amp_dict, filename_notes, sps)
-Syn.make_wav('zzz')

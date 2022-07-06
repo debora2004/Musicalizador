@@ -1,9 +1,11 @@
 class Instrument(object):
-    def __init__(self, filename_instruments):
-        self.filename_instruments = filename_instruments
+    def __init__(self, filename):
+        if '.txt' not in filename:
+            filename = 'instruments/' + filename + '.txt'
+        self.filename = filename
 
     def read_instrument(self):
-        with open(self.filename_instruments, 'r') as f:
+        with open(self.filename, 'r') as f:
             num_harmonics = f.readline().strip()
 
             amp_mod={} #modulador de amplitud
@@ -26,3 +28,4 @@ class Instrument(object):
                 elif len(line) == 1:
                     amp_mod[name_funct] = None
             return harm_dict, amp_mod
+
